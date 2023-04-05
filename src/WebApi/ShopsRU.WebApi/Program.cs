@@ -3,8 +3,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ShopRU.Persistence;
 using MediatR;
-using ShopsRU.WebApi.Extensions;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using ShopRU.Persistence.Context;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,11 +17,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddPersistenceServices();
 builder.Services.AddControllers(); //
 builder.Services.AddMediatR(Assembly.GetExecutingAssembly());
-
-
-
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("ShopRU"));
 
 
 var app = builder.Build();
@@ -32,9 +29,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
-
-
 app.UseHttpsRedirection();
 
 app.UseRouting(); //
@@ -44,8 +38,6 @@ app.UseEndpoints(endpoints => //
 {
     endpoints.MapControllers();
 });
-
-app.ConfigureExceptionHandler(logger);
 
 app.Run();
 

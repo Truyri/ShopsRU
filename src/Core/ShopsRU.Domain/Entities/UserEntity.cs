@@ -32,7 +32,7 @@ namespace ShopsRU.Domain.Entities
 
         [Required]
         public UserTypes UserType { get; set; }
-
+        
         [Required]
         public DateTime CreatedDate { get; set; }
 

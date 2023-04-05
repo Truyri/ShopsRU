@@ -22,8 +22,8 @@ namespace ShopsRU.WebApi.Controllers
         [Route("BuyProduct")]
         public async Task<IActionResult> BuyProduct([FromBody] UserDto request)
         {
-            await _mediator.Send(new ProductBuyCommand() { Amount = request.Amount, IsGrocery = request.IsGrocery, UserId = request.Id });
-            return Ok();
+            var result = await _mediator.Send(new ProductBuyCommand() { Amount = request.Amount, IsGrocery = request.IsGrocery, UserId = request.Id });
+            return Ok(result);
         }
     }
 }

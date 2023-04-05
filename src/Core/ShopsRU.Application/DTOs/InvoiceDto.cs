@@ -11,6 +11,5 @@ namespace ShopsRU.Application.DTOs
     {
         public Guid InvoiceNumber { get; set; }
         public decimal TotalAmount { get; set; }
-        public decimal DiscountAmount { get; set; }
     }
 }

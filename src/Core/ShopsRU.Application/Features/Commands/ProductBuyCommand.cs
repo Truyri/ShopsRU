@@ -5,9 +5,13 @@ using ShopsRU.Application.Interfaces;
 using ShopsRU.Domain.Entities;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ShopsRU.Application.CommonMethods;
+using ShopsRU.Application.Services;
+using ShopsRU.Domain.Common;
 
 namespace ShopsRU.Application.Features.Commands
 {
@@ -19,63 +23,40 @@ namespace ShopsRU.Application.Features.Commands
 
         public class ProductBuyCommandHandler : IRequestHandler<ProductBuyCommand, InvoiceDto>
         {
-            private readonly IUserRepositoryAsync<UserEntity> _userRepository;
+            private readonly IUserFinder _userFinder;
 
-            public ProductBuyCommandHandler(IUserRepositoryAsync<UserEntity> userRepository)
+            public ProductBuyCommandHandler(IUserFinder userFinder)
             {
-                _userRepository = userRepository;
+                _userFinder = userFinder;
             }
 
             public async Task<InvoiceDto> Handle(ProductBuyCommand request, CancellationToken cancellationToken)
             {
-                var uer = await _userRepository.GetAllAsync();
-                UserEntity? user = await _userRepository.GetById(request.UserId);
-                decimal percentage = await CalculatePercentage(user);
-                var discount = CalculateDiscount(request.Amount, request.IsGrocery, percentage);
-
-
-                var invoice = new InvoiceDto
+                InvoiceDto invoice;
+                try
                 {
-                    InvoiceNumber = Guid.NewGuid(),
-                    TotalAmount = request.Amount - discount.Result,
-                    DiscountAmount = discount.Result
-                };
+                    if (request.IsGrocery)
+                    {
+                        invoice = new InvoiceDto
+                        {
+                            InvoiceNumber = Guid.NewGuid(),
+                            TotalAmount = await DiscountCalculator.CalculateDiscount(request.Amount)
+                        };
+                        
+                        return invoice;
+                    }
 
-
-                return invoice;
+                    var model = new CalculationParameters() { Amount = request.Amount, UserId = request.UserId  };
+                    
+                    invoice = (await UserSelector.GetUserChanger(new UserSelectorParameters { CalculationParameters = model, UserFinder = _userFinder}).CalculationAmount(model));
+                    
+                    return invoice;
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Error: " + e.Message);
+                }
             }
-        }
-        private static async Task<decimal> CalculateDiscount(decimal amount,bool isGrocery,decimal rate)
-        {
-            decimal discount = 0;
-
-            if (!isGrocery)
-            {
-               discount = amount * rate;
-              
-               discount += Math.Floor(amount / 100) * 5m; // $5 discount for every $100 spent
-            }
-
-            return discount;
-        }
-        private static async Task<decimal> CalculatePercentage(UserEntity user)
-        {
-            decimal rate = 0;
-
-            if (user.UserType == UserTypes.Employee)
-            {
-                rate = 0.3m;
-            }
-            else if (user.UserType == UserTypes.Affiliate)
-            {
-                rate = 0.1m;
-            }
-            else if (user.UserType == UserTypes.Customer && (DateTime.Now - user.CreatedDate).TotalDays > 365 * 2)
-            {
-                rate = 0.05m;
-            }
-
-            return rate;
         }
     }
 }
